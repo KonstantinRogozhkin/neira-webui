@@ -375,6 +375,84 @@ def convert_openapi_to_tool_payload(openapi_spec):
 
     for path, methods in openapi_spec.get("paths", {}).items():
         for method, operation in methods.items():
+            # Case 1: single endpoint with enum path parameter describing available tools
+            enum_path_param = None
+            for p in operation.get("parameters", []):
+                if (
+                    p.get("in") == "path"
+                    and isinstance(p.get("schema", {}).get("enum"), list)
+                    and p["schema"]["enum"]
+                ):
+                    enum_path_param = p
+                    break
+
+            if enum_path_param is not None:
+                for tool_name in enum_path_param["schema"]["enum"]:
+                    tool = {
+                        "name": tool_name,
+                        "description": operation.get(
+                            "description",
+                            operation.get("summary", "No description available."),
+                        ),
+                        "parameters": {"type": "object", "properties": {}, "required": []},
+                    }
+
+                    # Include all params except the enum path param itself
+                    for param in operation.get("parameters", []):
+                        if param.get("name") == enum_path_param.get("name"):
+                            continue
+                        param_name = param["name"]
+                        param_schema = param.get("schema", {})
+                        description = param_schema.get("description", "") or param.get(
+                            "description", ""
+                        )
+                        if param_schema.get("enum") and isinstance(
+                            param_schema.get("enum"), list
+                        ):
+                            description += (
+                                f". Possible values: {', '.join(param_schema.get('enum'))}"
+                            )
+                        param_property = {
+                            "type": param_schema.get("type"),
+                            "description": description,
+                        }
+                        if (
+                            param_schema.get("type") == "array"
+                            and "items" in param_schema
+                        ):
+                            param_property["items"] = param_schema["items"]
+                        tool["parameters"]["properties"][param_name] = param_property
+                        if param.get("required"):
+                            tool["parameters"]["required"].append(param_name)
+
+                    # Resolve requestBody once and apply to tool params
+                    request_body = operation.get("requestBody")
+                    if request_body:
+                        content = request_body.get("content", {})
+                        json_schema = content.get("application/json", {}).get("schema")
+                        if json_schema:
+                            resolved_schema = resolve_schema(
+                                json_schema, openapi_spec.get("components", {})
+                            )
+                            if resolved_schema.get("properties"):
+                                tool["parameters"]["properties"].update(
+                                    resolved_schema["properties"]
+                                )
+                                if "required" in resolved_schema:
+                                    tool["parameters"]["required"] = list(
+                                        set(
+                                            tool["parameters"]["required"]
+                                            + resolved_schema["required"]
+                                        )
+                                    )
+                            elif resolved_schema.get("type") == "array":
+                                tool["parameters"] = resolved_schema
+
+                    tool_payload.append(tool)
+                # Skip normal opId handling for this operation after enum processing
+                continue
+
+            # Case 2: standard per-operationId tools
             if operation.get("operationId"):
                 tool = {
                     "name": operation.get("operationId"),
@@ -527,11 +605,17 @@ async def get_tool_servers_data(
         if info and isinstance(openapi_data, dict):
             openapi_data["info"] = openapi_data.get("info", {})
 
-            if "name" in info:
-                openapi_data["info"]["title"] = info.get("name", "Tool Server")
+            if "name" in info and info.get("name", "").strip():
+                openapi_data["info"]["title"] = info.get("name")
+            else:
+                openapi_data["info"]["title"] = "Tool Server"
 
-            if "description" in info:
-                openapi_data["info"]["description"] = info.get("description", "")
+            if "description" in info and info.get("description", "").strip():
+                openapi_data["info"]["description"] = info.get("description")
+
+            # Ensure version is always present
+            if not openapi_data["info"].get("version"):
+                openapi_data["info"]["version"] = "1.0.0"
 
         results.append(
             {
@@ -555,6 +639,7 @@ async def execute_tool_server(
         paths = openapi.get("paths", {})
 
         matching_route = None
+        enum_param_name_for_tool = None
         for route_path, methods in paths.items():
             for http_method, operation in methods.items():
                 if isinstance(operation, dict) and operation.get("operationId") == name:
@@ -563,8 +648,28 @@ async def execute_tool_server(
             if matching_route:
                 break
 
+        # Fallback: match by enum path parameter value equal to tool name
         if not matching_route:
-            raise Exception(f"No matching route found for operationId: {name}")
+            for route_path, methods in paths.items():
+                for http_method, operation in methods.items():
+                    if not isinstance(operation, dict):
+                        continue
+                    for p in operation.get("parameters", []):
+                        if (
+                            p.get("in") == "path"
+                            and isinstance(p.get("schema", {}).get("enum"), list)
+                            and name in p["schema"]["enum"]
+                        ):
+                            matching_route = (route_path, methods)
+                            enum_param_name_for_tool = p.get("name")
+                            break
+                    if matching_route:
+                        break
+                if matching_route:
+                    break
+
+        if not matching_route:
+            raise Exception(f"No matching route found for tool: {name}")
 
         route_path, methods = matching_route
 
@@ -573,9 +678,9 @@ async def execute_tool_server(
             if operation.get("operationId") == name:
                 method_entry = (http_method.lower(), operation)
                 break
-
-        if not method_entry:
-            raise Exception(f"No matching method found for operationId: {name}")
+            # If not matched by operationId, still pick this operation (first in methods)
+            if enum_param_name_for_tool and not method_entry:
+                method_entry = (list(methods.keys())[0].lower(), list(methods.values())[0])
 
         http_method, operation = method_entry
 
@@ -591,6 +696,10 @@ async def execute_tool_server(
                     path_params[param_name] = params[param_name]
                 elif param_in == "query":
                     query_params[param_name] = params[param_name]
+
+        # Ensure enum path parameter (tool name) is set when spec uses it
+        if enum_param_name_for_tool and enum_param_name_for_tool not in path_params:
+            path_params[enum_param_name_for_tool] = name
 
         final_url = f"{url}{route_path}"
         for key, value in path_params.items():

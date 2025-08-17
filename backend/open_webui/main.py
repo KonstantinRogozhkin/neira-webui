@@ -578,7 +578,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Open WebUI",
+    title="OHI-S ASSISTANT",
     docs_url="/docs" if ENV == "dev" else None,
     openapi_url="/openapi.json" if ENV == "dev" else None,
     redoc_url=None,
@@ -1780,7 +1780,7 @@ async def get_app_changelog():
 @app.get("/api/usage")
 async def get_current_usage(user=Depends(get_verified_user)):
     """
-    Get current usage statistics for Open WebUI.
+    Get current usage statistics for OHI-S ASSISTANT.
     This is an experimental endpoint and subject to change.
     """
     try:
@@ -1877,6 +1877,15 @@ async def healthcheck_with_db():
 
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+# Serve assets on /assets as well (fonts/images referenced with absolute /assets/... URLs)
+try:
+    from pathlib import Path as _Path
+    _assets_dir = _Path(FRONTEND_BUILD_DIR) / "assets"
+    if _assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(_assets_dir)), name="assets")
+except Exception:
+    pass
 
 
 @app.get("/cache/{path:path}")

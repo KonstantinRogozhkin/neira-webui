@@ -1318,6 +1318,79 @@ export const convertOpenApiToToolPayload = (openApiSpec) => {
 
 	for (const [path, methods] of Object.entries(openApiSpec.paths)) {
 		for (const [method, operation] of Object.entries(methods)) {
+			// Case 1: dynamic tool name provided via enum in a path param (e.g., /api/{tool})
+			const enumPathParam = (operation?.parameters || []).find(
+				(p) => p && p.in === 'path' && p.schema && Array.isArray(p.schema.enum) && p.schema.enum.length > 0
+			);
+			if (enumPathParam) {
+				const enumValues = enumPathParam.schema.enum as string[];
+				enumValues.forEach((toolName) => {
+					const tool = {
+						name: toolName,
+						description:
+							operation.description || operation.summary || 'No description available.',
+						parameters: {
+							type: 'object',
+							properties: {},
+							required: []
+						}
+					};
+
+					// Include all parameters except the enum path parameter
+					(operation.parameters || [])
+						.filter((param) => param?.name !== enumPathParam.name)
+						.forEach((param) => {
+							const schema = param.schema || {};
+							let description = schema.description || param.description || '';
+							if (schema.enum && Array.isArray(schema.enum)) {
+								description += `. Possible values: ${schema.enum.join(', ')}`;
+							}
+							tool.parameters.properties[param.name] = {
+								type: schema.type,
+								...(schema.items ? { items: schema.items } : {}),
+								description: description
+							};
+							if (param.required) {
+								tool.parameters.required.push(param.name);
+							}
+						});
+
+					// Resolve requestBody schema (generic for all enum values)
+					if (operation.requestBody) {
+						const content = operation.requestBody.content;
+						if (content && content['application/json']) {
+							const requestSchema = content['application/json'].schema;
+							const resolvedRequestSchema = resolveSchema(
+								requestSchema,
+								openApiSpec.components
+							);
+
+							if (resolvedRequestSchema.properties) {
+								tool.parameters.properties = {
+									...tool.parameters.properties,
+									...resolvedRequestSchema.properties
+								};
+
+								if (resolvedRequestSchema.required) {
+									tool.parameters.required = [
+										...new Set([
+											...tool.parameters.required,
+											...resolvedRequestSchema.required
+										])
+									];
+								}
+							} else if (resolvedRequestSchema.type === 'array') {
+								tool.parameters = resolvedRequestSchema; // special case when root schema is an array
+							}
+						}
+					}
+
+					toolPayload.push(tool);
+				});
+				continue;
+			}
+
+			// Case 2: standard per-operationId tools
 			if (operation?.operationId) {
 				const tool = {
 					name: operation.operationId,
@@ -1332,12 +1405,14 @@ export const convertOpenApiToToolPayload = (openApiSpec) => {
 				// Extract path and query parameters
 				if (operation.parameters) {
 					operation.parameters.forEach((param) => {
-						let description = param.schema.description || param.description || '';
-						if (param.schema.enum && Array.isArray(param.schema.enum)) {
-							description += `. Possible values: ${param.schema.enum.join(', ')}`;
+						const schema = param.schema || {};
+						let description = schema.description || param.description || '';
+						if (schema.enum && Array.isArray(schema.enum)) {
+							description += `. Possible values: ${schema.enum.join(', ')}`;
 						}
 						tool.parameters.properties[param.name] = {
-							type: param.schema.type,
+							type: schema.type,
+							...(schema.items ? { items: schema.items } : {}),
 							description: description
 						};
 

@@ -955,8 +955,14 @@
 		editor = new Editor({
 			element: element,
 			extensions: [
+				// Disable overlapping parts we add separately to avoid duplicate extension warnings
 				StarterKit.configure({
-					link: link
+					link: link,
+					bulletList: false,
+					orderedList: false,
+					listItem: false,
+					listKeymap: false,
+					codeBlock: false
 				}),
 				Placeholder.configure({ placeholder }),
 				SelectionDecoration,

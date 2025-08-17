@@ -1,0 +1,112 @@
+name: Auto Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - main
+      - brand/OHIS
+      - develop
+  workflow_dispatch: # Ручной запуск
+
+jobs:
+  deploy-main:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    name: Deploy Main to Production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd src
+          npm ci
+          
+      - name: Build frontend
+        run: |
+          cd src
+          npm run build
+          
+      - name: Deploy to Vercel Production
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROD_PROJECT_ID }}
+          working-directory: ./
+          vercel-args: '--prod'
+
+  deploy-brand-ohis:
+    if: github.ref == 'refs/heads/brand/OHIS'
+    runs-on: ubuntu-latest
+    name: Deploy Brand/OHIS to OHIS Project
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd src
+          npm ci
+          
+      - name: Build frontend
+        run: |
+          cd src
+          npm run build
+          
+      - name: Deploy to Vercel OHIS Project
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_OHIS_PROJECT_ID }}
+          working-directory: ./
+          vercel-args: '--prod'
+
+  deploy-develop:
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    name: Deploy Develop to Development
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/package-lock.json
+          
+      - name: Install dependencies
+        run: |
+          cd src
+          npm ci
+          
+      - name: Build frontend
+        run: |
+          cd src
+          npm run build
+          
+      - name: Deploy to Vercel Development
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_DEV_PROJECT_ID }}
+          working-directory: ./
+          vercel-args: '--prod'

@@ -59,11 +59,16 @@ jobs:
           
       - name: Deploy to RunPod
         run: |
-          # Install RunPod CLI
-          curl -s https://runpod.io/static/runpod-cli.sh | bash
+          # Install RunPod CLI using official method
+          wget --quiet --show-progress https://github.com/Run-Pod/runpodctl/releases/download/v1.14.3/runpodctl-linux-amd64 -O runpodctl
+          chmod +x runpodctl
+          sudo cp runpodctl /usr/bin/runpodctl
           
-          # Set RunPod API key
-          export RUNPOD_API_KEY="${{ secrets.RUNPOD_API_KEY }}"
+          # Verify installation
+          runpodctl version
+          
+          # Configure RunPod CLI with API key
+          runpodctl config --apiKey "${{ secrets.RUNPOD_API_KEY }}"
           
           # Deploy to RunPod
           runpodctl pod create \

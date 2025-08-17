@@ -331,7 +331,7 @@
 								<label
 									for="description"
 									class={`mb-1 text-xs ${($settings?.highContrastMode ?? false) ? 'text-gray-800 dark:text-gray-100 placeholder:text-gray-700 dark:placeholder:text-gray-100' : 'outline-hidden placeholder:text-gray-300 dark:placeholder:text-gray-700 text-gray-500'}`}
-									>{$i18n.t('Description')}</label
+									>{$i18n.t('Description')} <span class="text-gray-400">({$i18n.t('optional')})</span></label
 								>
 
 								<div class="flex-1">

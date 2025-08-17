@@ -1700,6 +1700,25 @@
 			}))
 			.filter((message) => message?.role === 'user' || message?.content?.trim());
 
+		// Automatically include all tools from tool servers if they exist
+		let allToolIds = [...selectedToolIds];
+		let allToolServers = $toolServers ? [...$toolServers] : [];
+		
+		if ($toolServers && $toolServers.length > 0) {
+			console.log('Available tool servers:', $toolServers);
+			$toolServers.forEach((server, serverIndex) => {
+				if (server.specs && server.specs.length > 0) {
+					console.log(`Server ${serverIndex} has ${server.specs.length} tools:`, server.specs);
+					// For direct tool servers, we don't need to add them to tool_ids
+					// They will be processed directly by the backend via tool_servers
+				}
+			});
+		}
+		
+		console.log('Final tool IDs:', allToolIds);
+		console.log('Selected tool IDs:', selectedToolIds);
+		console.log('Tool servers:', allToolServers);
+
 		const res = await generateOpenAIChatCompletion(
 			localStorage.token,
 			{
@@ -1720,8 +1739,8 @@
 				files: (files?.length ?? 0) > 0 ? files : undefined,
 
 				filter_ids: selectedFilterIds.length > 0 ? selectedFilterIds : undefined,
-				tool_ids: selectedToolIds.length > 0 ? selectedToolIds : undefined,
-				tool_servers: $toolServers,
+				tool_ids: allToolIds.length > 0 ? allToolIds : undefined,
+				tool_servers: allToolServers.length > 0 ? allToolServers : undefined,
 
 				features: {
 					image_generation:

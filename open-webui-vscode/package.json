@@ -1,0 +1,105 @@
+{
+  "name": "open-webui",
+  "displayName": "OHI-S ASSISTANT",
+  "description": "AI Chat Interface for VS Code - Powered by OHI-S ASSISTANT",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/open-webui/open-webui.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning",
+    "AI"
+  ],
+  "activationEvents": [
+    "onCommand:openwebui.start",
+    "onCommand:openwebui.docker.start",
+    "onCommand:openwebui.docker.stop"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "openwebui.start",
+        "title": "OHI-S ASSISTANT: Start Chat",
+        "category": "OHI-S ASSISTANT"
+      },
+      {
+        "command": "openwebui.docker.start",
+        "title": "OHI-S ASSISTANT: Start Docker Container",
+        "category": "OHI-S ASSISTANT"
+      },
+      {
+        "command": "openwebui.docker.stop",
+        "title": "OHI-S ASSISTANT: Stop Docker Container",
+        "category": "OHI-S ASSISTANT"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "openwebui.start",
+          "when": "true"
+        },
+        {
+          "command": "openwebui.docker.start",
+          "when": "true"
+        },
+        {
+          "command": "openwebui.docker.stop",
+          "when": "true"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "OHI-S ASSISTANT",
+      "properties": {
+        "openwebui.docker.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Docker integration for OHI-S ASSISTANT"
+        },
+        "openwebui.docker.image": {
+          "type": "string",
+          "default": "ghcr.io/open-webui/open-webui:ollama",
+          "description": "Docker image to use for OHI-S ASSISTANT"
+        },
+        "openwebui.docker.port": {
+          "type": "number",
+          "default": 3000,
+          "description": "Port to expose OHI-S ASSISTANT on"
+        },
+        "openwebui.webview.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable WebView integration in VS Code"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/dockerode": "^3.3.42",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "dockerode": "^4.0.0"
+  }
+}

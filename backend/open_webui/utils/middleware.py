@@ -908,6 +908,7 @@ async def process_chat_payload(request, form_data, user, metadata, model):
     tools_dict = {}
 
     if tool_ids:
+        log.debug(f"Processing {len(tool_ids)} tool IDs")
         tools_dict = get_tools(
             request,
             tool_ids,
@@ -919,10 +920,13 @@ async def process_chat_payload(request, form_data, user, metadata, model):
                 "__files__": metadata.get("files", []),
             },
         )
+        log.debug(f"Got {len(tools_dict)} tools from tool_ids")
 
     if tool_servers:
+        log.debug(f"Processing {len(tool_servers)} tool servers")
         for tool_server in tool_servers:
             tool_specs = tool_server.pop("specs", [])
+            log.debug(f"Tool server {tool_server.get('url', 'unknown')} has {len(tool_specs)} specs")
 
             for tool in tool_specs:
                 tools_dict[tool["name"]] = {
@@ -930,24 +934,28 @@ async def process_chat_payload(request, form_data, user, metadata, model):
                     "direct": True,
                     "server": tool_server,
                 }
+                log.debug(f"Added tool {tool['name']} from server {tool_server.get('url', 'unknown')}")
 
+    log.debug(f"Total tools available: {len(tools_dict)}")
     if tools_dict:
-        if metadata.get("params", {}).get("function_calling") == "native":
-            # If the function calling is native, then call the tools function calling handler
-            metadata["tools"] = tools_dict
-            form_data["tools"] = [
-                {"type": "function", "function": tool.get("spec", {})}
-                for tool in tools_dict.values()
-            ]
-        else:
-            # If the function calling is not native, then call the tools function calling handler
-            try:
-                form_data, flags = await chat_completion_tools_handler(
-                    request, form_data, extra_params, user, models, tools_dict
-                )
-                sources.extend(flags.get("sources", []))
-            except Exception as e:
-                log.exception(e)
+        log.debug(f"Tool names: {list(tools_dict.keys())}")
+
+    if metadata.get("params", {}).get("function_calling") == "native":
+        # If the function calling is native, then call the tools function calling handler
+        metadata["tools"] = tools_dict
+        form_data["tools"] = [
+            {"type": "function", "function": tool.get("spec", {})}
+            for tool in tools_dict.values()
+        ]
+    else:
+        # If the function calling is not native, then call the tools function calling handler
+        try:
+            form_data, flags = await chat_completion_tools_handler(
+                request, form_data, extra_params, user, models, tools_dict
+            )
+            sources.extend(flags.get("sources", []))
+        except Exception as e:
+            log.exception(e)
 
     try:
         form_data, flags = await chat_completion_files_handler(request, form_data, user)

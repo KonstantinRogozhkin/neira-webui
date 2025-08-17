@@ -74,7 +74,7 @@
 
 			<div class="px-5 pb-5 w-full flex flex-col justify-center">
 				<div class=" text-xs text-gray-600 dark:text-gray-300 mb-2">
-					{$i18n.t('Open WebUI can use tools provided by any OpenAPI server.')} <br /><a
+					{$i18n.t('OHI-S ASSISTANT can use tools provided by any OpenAPI server.')} <br /><a
 						class="underline"
 						href="https://github.com/open-webui/openapi-servers"
 						target="_blank">{$i18n.t('Learn more about OpenAPI tool servers.')}</a
@@ -85,12 +85,14 @@
 						<Collapsible buttonClassName="w-full" chevron>
 							<div>
 								<div class="text-sm font-medium dark:text-gray-100 text-gray-800">
-									{toolServer?.openapi?.info?.title} - v{toolServer?.openapi?.info?.version}
+									{toolServer?.openapi?.info?.title || 'Tool Server'} - v{toolServer?.openapi?.info?.version || '1.0.0'}
 								</div>
 
-								<div class="text-xs text-gray-500">
-									{toolServer?.openapi?.info?.description}
-								</div>
+								{#if toolServer?.openapi?.info?.description && toolServer.openapi.info.description.trim() !== ''}
+									<div class="text-xs text-gray-500">
+										{toolServer.openapi.info.description}
+									</div>
+								{/if}
 
 								<div class="text-xs text-gray-500">
 									{toolServer?.url}

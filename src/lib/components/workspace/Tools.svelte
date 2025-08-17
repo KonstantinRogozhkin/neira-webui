@@ -75,7 +75,7 @@
 			return null;
 		});
 
-		toast.success($i18n.t('Redirecting you to Open WebUI Community'));
+		toast.success($i18n.t('Redirecting you to OHI-S ASSISTANT Community'));
 
 		const url = 'https://openwebui.com';
 
@@ -293,9 +293,11 @@
 
 							<div class="px-0.5">
 								<div class="flex gap-1.5 mt-0.5 mb-0.5">
-									<div class=" text-xs overflow-hidden text-ellipsis line-clamp-1">
-										{tool.meta.description}
-									</div>
+									{#if tool?.meta?.description && tool.meta.description.trim() !== ''}
+										<div class=" text-xs overflow-hidden text-ellipsis line-clamp-1">
+											{tool.meta.description}
+										</div>
+									{/if}
 								</div>
 
 								<div class="text-xs text-gray-500 shrink-0">
@@ -491,7 +493,7 @@
 	{#if $config?.features.enable_community_sharing}
 		<div class=" my-16">
 			<div class=" text-xl font-medium mb-1 line-clamp-1">
-				{$i18n.t('Made by Open WebUI Community')}
+				{$i18n.t('Made by OHI-S ASSISTANT Community')}
 			</div>
 
 			<a

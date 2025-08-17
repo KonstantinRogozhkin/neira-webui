@@ -22,16 +22,14 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: src/package-lock.json
+          cache-dependency-path: package-lock.json
           
       - name: Install dependencies
         run: |
-          cd src
           npm ci
           
       - name: Build frontend
         run: |
-          cd src
           npm run build
           
       - name: Deploy to Vercel Production
@@ -56,16 +54,14 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: src/package-lock.json
+          cache-dependency-path: package-lock.json
           
       - name: Install dependencies
         run: |
-          cd src
           npm ci
           
       - name: Build frontend
         run: |
-          cd src
           npm run build
           
       - name: Deploy to Vercel OHIS Project
@@ -90,16 +86,14 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: src/package-lock.json
+          cache-dependency-path: package-lock.json
           
       - name: Install dependencies
         run: |
-          cd src
           npm ci
           
       - name: Build frontend
         run: |
-          cd src
           npm run build
           
       - name: Deploy to Vercel Development

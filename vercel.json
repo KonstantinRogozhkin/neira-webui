@@ -1,13 +1,13 @@
 {
-  "buildCommand": "cd src && npm run build",
-  "outputDirectory": "src/build",
-  "installCommand": "cd src && npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
+  "installCommand": "npm install",
   "framework": "sveltekit",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "functions": {
-    "src/build/**/*.js": {
+    "build/**/*.js": {
       "runtime": "nodejs18.x"
     }
   },

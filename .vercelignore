@@ -34,3 +34,4 @@ docker-compose.yml
 .dockerignore
 
 #
+.neira/export_code/**

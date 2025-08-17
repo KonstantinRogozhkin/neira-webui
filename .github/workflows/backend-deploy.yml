@@ -78,13 +78,27 @@ jobs:
           runpodctl create pod --help
           
           # Deploy to RunPod using correct command syntax
+          echo "Attempting to deploy to RunPod with standard specifications..."
           runpodctl create pod \
             --name "neira-webui-backend-$(date +%s)" \
             --imageName "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:brand-OHIS" \
             --gpuType "NONE" \
-            --vcpu 2 \
-            --mem 4 \
-            --containerDiskSize 10 \
+            --vcpu 1 \
+            --mem 8 \
+            --containerDiskSize 20 \
             --ports "8000/http" \
             --env "NODE_ENV=production" \
-            --env "PORT=8000"
+            --env "PORT=8000" || {
+            echo "Standard deployment failed, trying community cloud..."
+            runpodctl create pod \
+              --name "neira-webui-backend-$(date +%s)" \
+              --imageName "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:brand-OHIS" \
+              --gpuType "NONE" \
+              --vcpu 1 \
+              --mem 8 \
+              --containerDiskSize 20 \
+              --ports "8000/http" \
+              --env "NODE_ENV=production" \
+              --env "PORT=8000" \
+              --communityCloud
+          }

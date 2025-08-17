@@ -67,11 +67,17 @@ jobs:
           # Verify installation
           runpodctl version
           
+          # Check available commands
+          runpodctl --help
+          
           # Configure RunPod CLI with API key
           runpodctl config --apiKey "${{ secrets.RUNPOD_API_KEY }}"
           
-          # Deploy to RunPod
-          runpodctl pod create \
+          # List available commands after configuration
+          runpodctl --help
+          
+          # Deploy to RunPod using correct command syntax
+          runpodctl run \
             --name "neira-webui-backend-$(date +%s)" \
             --image "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" \
             --gpu-type "NONE" \

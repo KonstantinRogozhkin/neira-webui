@@ -81,12 +81,17 @@ jobs:
             docker stop neira-webui-backend || true
             docker rm neira-webui-backend || true
             
+            # Create network if it doesn't exist
+            echo "🌐 Creating Docker network if needed..."
+            docker network create neira-network || true
+            
             # Run new container
             echo "🚀 Starting new container..."
             docker run -d \
               --name neira-webui-backend \
               --restart unless-stopped \
               -p 8000:8000 \
+              --network neira-network \
               -e NODE_ENV=production \
               -e PORT=8000 \
               ghcr.io/konstantinrogozhkin/neira-webui/backend:brand-OHIS

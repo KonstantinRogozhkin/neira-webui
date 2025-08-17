@@ -260,9 +260,21 @@ jobs:
             docker network create neira-network
           fi
 
-          echo "🔗 Ensuring backend container is attached to neira-network with alias..."
-          docker network connect --alias neira-webui-backend neira-network backend-api-1 || true
-          docker network connect --alias neira-webui-backend neira-network neira-webui-backend || true
+          echo "📥 Pulling backend image..."
+          docker pull ghcr.io/konstantinrogozhkin/neira-webui/backend:brand-OHIS || true
+
+          echo "🛑 Restarting backend container (neira-webui-backend)..."
+          docker stop neira-webui-backend || true
+          docker rm neira-webui-backend || true
+
+          echo "🚀 Starting backend container (neira-webui-backend)..."
+          docker run -d \
+            --name neira-webui-backend \
+            --restart unless-stopped \
+            --network neira-network \
+            -e NODE_ENV=production \
+            -e PORT=8000 \
+            ghcr.io/konstantinrogozhkin/neira-webui/backend:brand-OHIS || true
 
           echo "🚀 Starting new frontend container..."
           docker run -d \
@@ -300,6 +312,8 @@ jobs:
           if [ -e /etc/nginx/sites-enabled/default ]; then rm -f /etc/nginx/sites-enabled/default; fi
           nginx -t || true
           if command -v systemctl >/dev/null 2>&1; then systemctl reload nginx || systemctl restart nginx || true; else service nginx reload || service nginx restart || true; fi
+          # Ensure nginx is running
+          if command -v systemctl >/dev/null 2>&1; then systemctl start nginx || true; else service nginx start || true; fi
 
           echo "📊 Frontend container status:"
           docker ps | grep neira-webui-frontend || true

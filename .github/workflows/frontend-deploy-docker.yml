@@ -56,7 +56,7 @@ jobs:
           
           # Health check
           HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-            CMD wget -q --tries=1 --spider http://localhost:80/ || exit 1
+            CMD wget -q -O - http://localhost:80/ >/dev/null 2>&1 || exit 1
           
           # Start nginx
           CMD ["nginx", "-g", "daemon off;"]
@@ -260,6 +260,10 @@ jobs:
             docker network create neira-network
           fi
 
+          echo "🔗 Ensuring backend container is attached to neira-network with alias..."
+          docker network connect --alias neira-webui-backend neira-network backend-api-1 || true
+          docker network connect --alias neira-webui-backend neira-network neira-webui-backend || true
+
           echo "🚀 Starting new frontend container..."
           docker run -d \
             --name neira-webui-frontend \
@@ -268,17 +272,46 @@ jobs:
             --network neira-network \
             ghcr.io/konstantinrogozhkin/neira-webui/frontend:brand-OHIS
 
+          echo "🧰 Configuring host Nginx to proxy to frontend container (127.0.0.1:8080)..."
+          printf '%s\n' \
+            'server {' \
+            '    listen 80 default_server;' \
+            '    listen [::]:80 default_server;' \
+            '' \
+            '    server_name _;' \
+            '' \
+            '    location / {' \
+            '        proxy_pass http://127.0.0.1:8080;' \
+            '        proxy_set_header Host $host;' \
+            '        proxy_set_header X-Real-IP $remote_addr;' \
+            '        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;' \
+            '        proxy_set_header X-Forwarded-Proto $scheme;' \
+            '        proxy_http_version 1.1;' \
+            '        proxy_set_header Upgrade $http_upgrade;' \
+            '        proxy_set_header Connection $connection_upgrade;' \
+            '        proxy_buffering off;' \
+            '        proxy_read_timeout 3600s;' \
+            '        proxy_send_timeout 3600s;' \
+            '    }' \
+            '}' \
+            > /etc/nginx/sites-available/neira-webui
+
+          ln -sf /etc/nginx/sites-available/neira-webui /etc/nginx/sites-enabled/neira-webui
+          if [ -e /etc/nginx/sites-enabled/default ]; then rm -f /etc/nginx/sites-enabled/default; fi
+          nginx -t || true
+          if command -v systemctl >/dev/null 2>&1; then systemctl reload nginx || systemctl restart nginx || true; else service nginx reload || service nginx restart || true; fi
+
           echo "📊 Frontend container status:"
           docker ps | grep neira-webui-frontend || true
 
           echo "📝 Frontend container logs:"
           docker logs --tail 10 neira-webui-frontend || true
 
-          echo "🔎 Health checks (localhost:8080)"
-          curl -sS -o /dev/null -w "root:%{http_code} %{content_type}\n" http://127.0.0.1:8080/ || true
-          curl -sS -o /dev/null -w "health:%{http_code} %{content_type}\n" http://127.0.0.1:8080/health || true
-          curl -sS -o /dev/null -w "health_db:%{http_code} %{content_type}\n" http://127.0.0.1:8080/health/db || true
-          curl -sS -o /dev/null -w "api_models_v1:%{http_code}\n" http://127.0.0.1:8080/api/v1/models/ || true
+          echo "🔎 Health checks (localhost:80)"
+          curl -sS -o /dev/null -w "root:%{http_code} %{content_type}\n" http://127.0.0.1/ || true
+          curl -sS -o /dev/null -w "health:%{http_code} %{content_type}\n" http://127.0.0.1/health || true
+          curl -sS -o /dev/null -w "health_db:%{http_code} %{content_type}\n" http://127.0.0.1/health/db || true
+          curl -sS -o /dev/null -w "api_models_v1:%{http_code}\n" http://127.0.0.1/api/v1/models/ || true
           EOF
           
           echo "✅ Frontend deployment completed!"

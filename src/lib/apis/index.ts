@@ -352,7 +352,7 @@ export const getToolServersData = async (i18n, servers: object[]) => {
 		await Promise.all(
 			servers
 				.filter((server) => server?.config?.enable)
-				.map(async (server) => {
+				.map(async (server, idx) => {
 					const data = await getToolServerData(
 						(server?.auth_type ?? 'bearer') === 'bearer' ? server?.key : localStorage.token,
 						(server?.path ?? '').includes('://')
@@ -372,6 +372,7 @@ export const getToolServersData = async (i18n, servers: object[]) => {
 					if (data) {
 						const { openapi, info, specs } = data;
 						return {
+							idx: idx,
 							url: server?.url,
 							openapi: openapi,
 							info: info,
@@ -1310,28 +1311,32 @@ export const getUsage = async (token: string = '') => {
 export const getBackendConfig = async () => {
 	let error = null;
 
-	const res = await fetch(`${WEBUI_BASE_URL}/api/config`, {
-		method: 'GET',
-		credentials: 'include',
-		headers: {
-			'Content-Type': 'application/json'
-		}
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			console.error(err);
-			error = err;
-			return null;
+	try {
+		const res = await fetch(`${WEBUI_BASE_URL}/api/config`, {
+			method: 'GET',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json'
+			}
 		});
 
-	if (error) {
-		throw error;
-	}
+		if (!res.ok) {
+			// Try to parse as JSON first, fallback to text if it fails
+			let errorData;
+			try {
+				errorData = await res.json();
+			} catch {
+				// If response is not JSON (e.g., HTML error page), use status text
+				errorData = { detail: `HTTP ${res.status}: ${res.statusText}` };
+			}
+			throw errorData;
+		}
 
-	return res;
+		return await res.json();
+	} catch (err) {
+		console.error('Error fetching backend config:', err);
+		throw err;
+	}
 };
 
 export const getChangelog = async () => {

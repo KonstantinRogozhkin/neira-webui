@@ -6,6 +6,17 @@ on:
     branches:
       - main
       - brand/OHIS
+    paths:
+      - 'src/**'
+      - 'static/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'svelte.config.js'
+      - 'vite.config.ts'
+      - 'tailwind.config.js'
+      - 'tsconfig.json'
+      - 'vercel.json'
+      - '.github/workflows/simple-deploy.yml'
   workflow_dispatch:
 
 jobs:

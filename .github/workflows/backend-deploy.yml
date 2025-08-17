@@ -8,6 +8,7 @@ on:
     paths:
       - 'backend/**'
       - 'requirements.txt'
+      - 'docker-compose.yml'
       - '.github/workflows/backend-deploy.yml'
   workflow_dispatch:
 

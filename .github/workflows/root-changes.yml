@@ -1,0 +1,39 @@
+name: Handle Root Changes
+
+on:
+  push:
+    branches:
+      - main
+      - brand/OHIS
+    paths:
+      - '.github/**'
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - 'CODE_OF_CONDUCT.md'
+      - 'CONTRIBUTOR_LICENSE_AGREEMENT.md'
+      - 'INSTALLATION.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.dockerignore'
+      - '.vercelignore'
+      - '*.md'
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    name: Notify Root Changes
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Show changed files
+        run: |
+          echo "🔄 Root-level changes detected:"
+          git diff --name-only HEAD~1
+          
+      - name: Notify completion
+        run: |
+          echo "✅ Root-level changes processed"
+          echo "📝 These changes don't require frontend or backend deployment"
+          echo "🔧 Manual review may be needed for documentation or configuration changes"

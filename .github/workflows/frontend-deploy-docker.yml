@@ -161,6 +161,10 @@ jobs:
           echo "📥 Pulling frontend Docker image..."
           ssh root@37.27.192.51 "docker pull ghcr.io/konstantinrogozhkin/neira-webui/frontend:brand-OHIS"
           
+          # Create network if it doesn't exist
+          echo "🌐 Creating Docker network if needed..."
+          ssh root@37.27.192.51 "docker network create neira-network || true"
+          
           # Stop existing frontend container if running
           echo "🛑 Stopping existing frontend container..."
           ssh root@37.27.192.51 "docker stop neira-webui-frontend || true && docker rm neira-webui-frontend || true"
@@ -173,10 +177,6 @@ jobs:
             -p 80:80 \
             --network neira-network \
             ghcr.io/konstantinrogozhkin/neira-webui/frontend:brand-OHIS"
-            
-          # Create network if it doesn't exist
-          echo "🌐 Creating Docker network if needed..."
-          ssh root@37.27.192.51 "docker network create neira-network || true"
           
           # Show container status
           echo "📊 Frontend container status:"

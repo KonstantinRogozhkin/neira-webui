@@ -80,11 +80,11 @@ jobs:
           # Deploy to RunPod using correct command syntax
           runpodctl create pod \
             --name "neira-webui-backend-$(date +%s)" \
-            --image "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:brand-OHIS" \
-            --gpu-type "NONE" \
-            --cpu 2 \
-            --memory 4 \
-            --disk 10 \
-            --ports "8000:8000" \
+            --imageName "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:brand-OHIS" \
+            --gpuType "NONE" \
+            --vcpu 2 \
+            --mem 4 \
+            --containerDiskSize 10 \
+            --ports "8000/http" \
             --env "NODE_ENV=production" \
             --env "PORT=8000"

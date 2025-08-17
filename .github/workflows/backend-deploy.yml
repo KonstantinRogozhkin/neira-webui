@@ -78,7 +78,7 @@ jobs:
           runpodctl --help
           
           # Deploy to RunPod using correct command syntax
-          runpodctl run \
+          runpodctl create \
             --name "neira-webui-backend-$(date +%s)" \
             --image "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" \
             --gpu-type "NONE" \

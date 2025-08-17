@@ -77,26 +77,43 @@ jobs:
           # Check create pod command specifically
           runpodctl create pod --help
           
-          # Deploy to RunPod using correct command syntax
-          echo "Attempting to deploy to RunPod with standard specifications..."
+          # Check available instances and pricing
+          echo "Checking available instances on RunPod..."
+          runpodctl get instances || echo "Could not get instances list"
+          
+          # Deploy to RunPod using minimal specifications
+          echo "Attempting to deploy to RunPod with minimal specifications..."
           runpodctl create pod \
             --name "neira-webui-backend-$(date +%s)" \
             --imageName "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:brand-OHIS" \
             --gpuType "NONE" \
             --vcpu 1 \
-            --mem 8 \
-            --containerDiskSize 20 \
+            --mem 4 \
+            --containerDiskSize 10 \
             --ports "8000/http" \
             --env "NODE_ENV=production" \
             --env "PORT=8000" || {
-            echo "Standard deployment failed, trying community cloud..."
+            echo "Minimal deployment failed, trying community cloud with minimal specs..."
             runpodctl create pod \
               --name "neira-webui-backend-$(date +%s)" \
               --imageName "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:brand-OHIS" \
               --gpuType "NONE" \
               --vcpu 1 \
-              --mem 8 \
-              --containerDiskSize 20 \
+              --mem 4 \
+              --containerDiskSize 10 \
+              --ports "8000/http" \
+              --env "NODE_ENV=production" \
+              --env "PORT=8000" \
+              --communityCloud
+          } || {
+            echo "Community cloud failed, trying with absolute minimal specs..."
+            runpodctl create pod \
+              --name "neira-webui-backend-$(date +%s)" \
+              --imageName "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:brand-OHIS" \
+              --gpuType "NONE" \
+              --vcpu 1 \
+              --mem 2 \
+              --containerDiskSize 5 \
               --ports "8000/http" \
               --env "NODE_ENV=production" \
               --env "PORT=8000" \

@@ -1,1 +1,21 @@
-{}
+{
+  "name": "OHI-S",
+  "short_name": "OHI-S",
+  "icons": [
+    {
+      "src": "/static/favicon.png",
+      "type": "image/png",
+      "sizes": "500x500",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/favicon.png",
+      "type": "image/png",
+      "sizes": "500x500",
+      "purpose": "maskable"
+    }
+  ],
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}

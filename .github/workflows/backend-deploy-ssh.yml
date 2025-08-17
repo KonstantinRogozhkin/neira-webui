@@ -67,14 +67,22 @@ jobs:
           
           # Pull latest image and restart container
           ssh root@37.27.192.51 << 'EOF'
+            # Clean up Docker to free space
+            echo "🧹 Cleaning up Docker to free space..."
+            docker system prune -f
+            docker image prune -f
+            
             # Pull latest image (use brand-OHIS tag)
+            echo "📥 Pulling Docker image..."
             docker pull ghcr.io/konstantinrogozhkin/neira-webui/backend:brand-OHIS
             
             # Stop existing container if running
+            echo "🛑 Stopping existing container..."
             docker stop neira-webui-backend || true
             docker rm neira-webui-backend || true
             
             # Run new container
+            echo "🚀 Starting new container..."
             docker run -d \
               --name neira-webui-backend \
               --restart unless-stopped \

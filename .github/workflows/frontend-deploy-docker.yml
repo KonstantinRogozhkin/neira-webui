@@ -150,40 +150,40 @@ jobs:
           # Add server to known_hosts
           ssh-keyscan -H 37.27.192.51 >> ~/.ssh/known_hosts
           
-          # Deploy to server
+          # Deploy to server in a single SSH session
           echo "🚀 Deploying frontend to SSH server..."
-          
-          # Clean up Docker to free space
+          ssh root@37.27.192.51 << 'EOF'
+          set -Eeuo pipefail
+
           echo "🧹 Cleaning up Docker to free space..."
-          ssh root@37.27.192.51 "docker system prune -f && docker image prune -f"
-          
-          # Pull latest frontend image
+          docker system prune -f || true
+          docker image prune -f || true
+
           echo "📥 Pulling frontend Docker image..."
-          ssh root@37.27.192.51 "docker pull ghcr.io/konstantinrogozhkin/neira-webui/frontend:brand-OHIS"
-          
-          # Create network if it doesn't exist
-          echo "🌐 Creating Docker network if needed..."
-          ssh root@37.27.192.51 "docker network create neira-network || true"
-          
-          # Stop existing frontend container if running
+          docker pull ghcr.io/konstantinrogozhkin/neira-webui/frontend:brand-OHIS
+
           echo "🛑 Stopping existing frontend container..."
-          ssh root@37.27.192.51 "docker stop neira-webui-frontend || true && docker rm neira-webui-frontend || true"
-          
-          # Run new frontend container
+          docker stop neira-webui-frontend || true
+          docker rm neira-webui-frontend || true
+
+          echo "🌐 Ensuring Docker network exists..."
+          if ! docker network inspect neira-network >/dev/null 2>&1; then
+            docker network create neira-network
+          fi
+
           echo "🚀 Starting new frontend container..."
-          ssh root@37.27.192.51 "docker run -d \
+          docker run -d \
             --name neira-webui-frontend \
             --restart unless-stopped \
             -p 80:80 \
             --network neira-network \
-            ghcr.io/konstantinrogozhkin/neira-webui/frontend:brand-OHIS"
-          
-          # Show container status
+            ghcr.io/konstantinrogozhkin/neira-webui/frontend:brand-OHIS
+
           echo "📊 Frontend container status:"
-          ssh root@37.27.192.51 "docker ps | grep neira-webui-frontend"
-          
-          # Show logs
+          docker ps | grep neira-webui-frontend || true
+
           echo "📝 Frontend container logs:"
-          ssh root@37.27.192.51 "docker logs --tail 10 neira-webui-frontend"
+          docker logs --tail 10 neira-webui-frontend || true
+          EOF
           
           echo "✅ Frontend deployment completed!"

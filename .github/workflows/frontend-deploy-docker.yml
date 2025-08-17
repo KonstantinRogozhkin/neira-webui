@@ -153,7 +153,7 @@ jobs:
           # Deploy to server in a single SSH session
           echo "🚀 Deploying frontend to SSH server..."
           ssh root@37.27.192.51 << 'EOF'
-          set -Eeuo pipefail
+          set -e
 
           echo "🧹 Cleaning up Docker to free space..."
           docker system prune -f || true

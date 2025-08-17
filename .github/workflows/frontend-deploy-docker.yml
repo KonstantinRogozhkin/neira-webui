@@ -56,7 +56,7 @@ jobs:
           
           # Health check
           HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-            CMD ["wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/", "||", "exit", "1"]
+            CMD wget -q --tries=1 --spider http://localhost:80/ || exit 1
           
           # Start nginx
           CMD ["nginx", "-g", "daemon off;"]
@@ -77,6 +77,10 @@ jobs:
             gzip_vary on;
             gzip_min_length 1024;
             gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+            
+            # Use Docker embedded DNS for upstream name resolution
+            resolver 127.0.0.11 ipv6=off;
+            resolver_timeout 5s;
             
             # Upgrade mapping for WebSocket/SSE
             map $http_upgrade $connection_upgrade {
@@ -101,7 +105,8 @@ jobs:
               
               # Proxy API to backend container over Docker network
               location /api/ {
-                  proxy_pass http://neira-webui-backend:8000;
+                  set $backend http://neira-webui-backend:8000;
+                  proxy_pass $backend;
                   proxy_set_header Host $host;
                   proxy_set_header X-Real-IP $remote_addr;
                   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -116,7 +121,8 @@ jobs:
 
               # Proxy OpenAI-compatible routes if served via backend
               location /openai/ {
-                  proxy_pass http://neira-webui-backend:8000;
+                  set $backend http://neira-webui-backend:8000;
+                  proxy_pass $backend;
                   proxy_set_header Host $host;
                   proxy_set_header X-Real-IP $remote_addr;
                   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -131,7 +137,8 @@ jobs:
 
               # Proxy Ollama-compatible routes if served via backend
               location /ollama/ {
-                  proxy_pass http://neira-webui-backend:8000;
+                  set $backend http://neira-webui-backend:8000;
+                  proxy_pass $backend;
                   proxy_set_header Host $host;
                   proxy_set_header X-Real-IP $remote_addr;
                   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -142,6 +149,37 @@ jobs:
                   proxy_buffering off;
                   proxy_read_timeout 3600s;
                   proxy_send_timeout 3600s;
+              }
+              
+              # Health endpoints proxied to backend
+              location = /health {
+                  set $backend http://neira-webui-backend:8000;
+                  proxy_pass $backend;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection $connection_upgrade;
+                  proxy_buffering off;
+                  proxy_read_timeout 30s;
+                  proxy_send_timeout 30s;
+              }
+
+              location = /health/db {
+                  set $backend http://neira-webui-backend:8000;
+                  proxy_pass $backend;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection $connection_upgrade;
+                  proxy_buffering off;
+                  proxy_read_timeout 30s;
+                  proxy_send_timeout 30s;
               }
               
               # Cache static assets
@@ -226,7 +264,7 @@ jobs:
           docker run -d \
             --name neira-webui-frontend \
             --restart unless-stopped \
-            -p 80:80 \
+            -p 8080:80 \
             --network neira-network \
             ghcr.io/konstantinrogozhkin/neira-webui/frontend:brand-OHIS
 
@@ -235,6 +273,12 @@ jobs:
 
           echo "📝 Frontend container logs:"
           docker logs --tail 10 neira-webui-frontend || true
+
+          echo "🔎 Health checks (localhost:8080)"
+          curl -sS -o /dev/null -w "root:%{http_code} %{content_type}\n" http://127.0.0.1:8080/ || true
+          curl -sS -o /dev/null -w "health:%{http_code} %{content_type}\n" http://127.0.0.1:8080/health || true
+          curl -sS -o /dev/null -w "health_db:%{http_code} %{content_type}\n" http://127.0.0.1:8080/health/db || true
+          curl -sS -o /dev/null -w "api_models_v1:%{http_code}\n" http://127.0.0.1:8080/api/v1/models/ || true
           EOF
           
           echo "✅ Frontend deployment completed!"

@@ -30,7 +30,13 @@ jobs:
       - name: Show changed files
         run: |
           echo "🔄 Root-level changes detected:"
-          git diff --name-only HEAD~1
+          # Check if we have more than one commit, otherwise show current files
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            git diff --name-only HEAD~1
+          else
+            echo "📝 Single commit detected, showing current root files:"
+            git ls-files | grep -E '^(\.github/|README|CHANGELOG|CODE_OF_CONDUCT|INSTALLATION|LICENSE|\.gitignore|\.dockerignore|\.vercelignore|.*\.md)$' | head -10
+          fi
           
       - name: Notify completion
         run: |
